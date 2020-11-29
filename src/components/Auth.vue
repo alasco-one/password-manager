@@ -10,7 +10,7 @@
                             <div class="container">
                                 <b-row >
                                     <b-col>
-                                        <b-alert v-if="showAlert" :variant="variant" >{{message}}</b-alert>
+                                        <b-alert :show="showAlert" :variant="variant" >{{message}}</b-alert>
                                     </b-col>
                                 </b-row>
                                 <b-form @submit.prevent="auth" >
@@ -55,6 +55,7 @@
                         <b-tab :disabled="hasUser" :active="!hasUser" title="Inscription">
                             
                                 <div class="container m-auto">
+                                    
                                         <b-form @submit="signUp" >
                                             <b-form-row>
                                                 <b-form-group label-for="user-name" label="Nom d'utilisateur">
@@ -109,7 +110,7 @@
                                             <b-form-row align-h="around" >
                                                 <b-col> 
                                                     <div class="d-inline-block ml-4">
-                                                        <b-button variant="primary" type="submit" >S'inscrire</b-button>
+                                                        <b-button  variant="primary" type="submit" >S'inscrire</b-button>
 
                                                     </div>
                                                 </b-col>
@@ -144,6 +145,13 @@ export default {
             }
         }
     },
+    computed : {
+        valid(){
+            return (this.form.userName.length>1) &&
+                (this.form.password.length>5)  &&
+                (this.form.password === this.form.passwordConfirmed)
+        }
+    },
     mounted(){
         console.log("Auth Mounted !!");
         console.log( this.$root.db);
@@ -151,7 +159,6 @@ export default {
             selector : {}
         })
             .then(res=>{
-                console.log("Find did !");
                 if(res.docs.length!=0){
                     this.hasUser=true
                 }else{
@@ -169,12 +176,14 @@ export default {
                 birthDate : this.form.birthDate
             }).then(()=>{
                 this.hasUser = true;
+                console.log("User bien enregistré !!")
             }, err=>{
                 if(err) console.log(err);
             })
 
         },
 
+   
         alert(o){
             this.message = o.message
             this.variant = o.variant
@@ -199,34 +208,81 @@ export default {
                     .sendMessage(tabs[0].id, { msg: { event: "host" } })
                     .then((value) => {
                         that.$root.host =value
+
+
+
                         if(res.docs.length!==0){
                             that.$root.authenticated=true
                             that.$root.passwordHash= passwordHashed;
                             console.log("Mot de passe hashé : ");
                             console.log(that.$root.passwordHash);
 
-                            that.$root.db.passwords.put({
-                                _id : that.$root.host+passwordHashed,
-                                host : that.$root.host, 
-                                password :passwordHashed,  
-                            }).then(()=>{
-                                console.log("Mot de passe sauvegardé avec succes ");
-                            }, err=>{
-                                if(err) console.log("Mot de passe déjà existant !!!");
+
+                            return this.$root.db.register.find({
+                                selector : { 
+                                    host : that.$root.host, 
+                                }
                             })
+                            
 
                         }else{
                             that.alert({
                                 message : "Nom d'utilisateur ou Mot de passe incorrect", 
                                 variant : "danger",
                             })
+                            
                         }
 
-                    });
+                    }).then(res=>{
+                        let promise = false
+                        if (res.docs.length) {
+                            
+                            that.$root._id = res.docs[0]._id
+                            that.$root.salt = res.docs[0].salt
+                            that.$root.date = new Date(res.docs[0].date)
+                            let diff = (Date.now() - that.$root.date)
+                            console.log("Différence entre  : "+diff);
+                            //pour 1 min
+                            //let delay = 10^3*60*60*24*60;
+
+                            let delay = 10^3*60;
+                            if(diff> delay ){
+                                that.$root.hasToBeChange = true;
+                                console.log("Oui je rentre !!!");
+                            }
+                        
+                        }else{
+                            
+                            that.$root.salt = Math.ceil(Math.random() * 10^4)
+                            that.$root._id = that.$root.host+Math.ceil(Math.random() * 10000)
+                            promise =  that.$root.db.register.put({
+                                _id : that.$root._id ,
+                                host : that.$root.host, 
+                                salt : that.$root.salt,  
+                                date : Date.now()
+                            
+                            })
+                        }
+                        that.$root.password =  that.$root.mix(that.$root.passwordHash, this.$root.host, this.$root.salt, this.$root.mapTable);
+                        if(promise) return promise
+                        else {
+                            return new Promise(res=>{
+                                res();
+                            })
+                        }
+                    }).then(()=>{
+                        console.log("Mot de passe sauvegardé avec succes ");
+                    }).catch(err=>{
+                        if(err) {
+                            console.log(err);
+                            console.log("Mot de passe déjà existant !!!");
+                        }
+                    })
+
                 });
 
                
-            }, err=>{
+            }).catch(err=>{
                 if(err) console.log(err);
             })
         }

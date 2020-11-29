@@ -1,9 +1,18 @@
 <template>
   <div class="container">
+      
+
       <b-tabs content-class="mt-3" align="center">
             <b-tab title="Création" active>
                 <div class="d-inline-block m-auto">
                     <div class="container">
+
+                        <b-row>
+                            <b-col>
+                                <b-alert :show="$root.hasToBeChange" variant="danger">Votre mot de passe a fait plus de 2 mois! Vous devez le changer.</b-alert>
+
+                            </b-col>
+                        </b-row>
 
                         <b-row class="mt-2 mb-2">
                             <b-col>
@@ -13,7 +22,7 @@
                             </b-col>
 
                         </b-row>
-                        <b-row>
+                        <b-row class="mt-2 mb-2">
 
                             <b-col>
                                 <b-form-group label="Mot de passe" >
@@ -22,7 +31,9 @@
                                         <b-form-input type ="text" :value="password" disabled></b-form-input>
 
                                         <b-input-group-append>
-                                            <b-button @click="copy" variant="outline-light"><b-icon class="text-dark" icon="files"></b-icon></b-button>
+                                            <b-button v-b-tooltip.hover :title="textPassword" @click="copy(password, 'old')" 
+                                                variant="outline-dark"><b-icon class="text-primary" icon="files"></b-icon></b-button>
+
                                         </b-input-group-append>
                                     </b-input-group>
                                 </b-form-group>
@@ -30,49 +41,60 @@
                             
                             
                         </b-row>
+                        <b-row class="mt-2 mb-2" v-if="changing" >
 
-                       <b-row >
                             <b-col>
-                                <b-alert v-if="showAlert" :variant="variant" >{{message}}</b-alert>
+                                <b-form-group label="Nouveau mot de passe" >
+                                    <b-input-group>
+
+                                        <b-form-input type ="text" :value="newPassword" disabled></b-form-input>
+
+                                        <b-input-group-append>
+                                            <b-button v-b-tooltip.hover  :title="textNewPassword" @click="copy(newPassword, 'new')" 
+                                                variant="outline-light"><b-icon class="text-primary" icon="files"></b-icon></b-button>
+                                        </b-input-group-append>
+                                    </b-input-group>
+                                </b-form-group>
+                            </b-col>
+                            
+                            
+                        </b-row>
+                        <b-row class="mt-2 mb-4" v-else>
+                            <b-col>
+                                <b-button @click="changePassword" block variant="outline-dark">Changer de mot de passe</b-button>
                             </b-col>
                         </b-row>
+
+                        <b-row v-if="changing" v-show="changing" class="mt-2 mb-4" >
+                            <b-col>
+                                <b-button @click="cancel" block variant="outline-warning">Annuler</b-button>
+                            </b-col>
+                            <b-col>
+                                <b-button @click="validate" block variant="outline-success">Valider</b-button>
+                            </b-col>
+                        </b-row>
+
                     </div>
                 </div>
             </b-tab>
 
-             <b-tab title="Mes mots de passe" >
-                <div class="container">
-                    <b-row v-for="(item, index) in items" :key="index" class="pt-2 pb-2 m-1 bg-light ">
-                        <b-col >
-                            <b-input-group>
-
-                                <b-input v-model="item.host" disabled type="text"></b-input>
-                                <b-input v-model="item.password" disabled :type="item.type" ></b-input>
-
-                                <b-input-group-append>
-                                    <b-button @click="item.type='text'" variant="light"><b-icon-eye class="text-dark" ></b-icon-eye></b-button>
-
-                                </b-input-group-append>
-                            </b-input-group>
-                        </b-col>
-                        
-                    </b-row>
-                </div>
-            </b-tab>
       </b-tabs>
+    
+
                 
   </div>
 </template>
 
 <script>
-import  browser from "webextension-polyfill";
-
 
 export default {
 
      
 
     computed : {
+
+
+
         passwordHash () {
             //let a = this.$root.passwordHash;
             
@@ -84,24 +106,81 @@ export default {
         },
         
         password(){
-            let a = this.$root.md5(this.host+this.passwordHash);
+            //let a =this.sort( this.$root.md5(this.host+this.passwordHash));
             //this.$emit("save-password");
             
-            return a;
+            return this.$root.password
         }
     },
 
     methods: {
-        copy(){
-            var that = this;
-            browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
-                browser.tabs
-                .sendMessage(tabs[0].id, { msg: { event: "copy" , value : that.password} })
-                .then(() => {
-                    that.copied()
 
+        /**
+         * Methode qui permet d'annuler un changement de mot de passe 
+         * donc la valeur courante est conservée
+         */
+        cancel(){
+            this.newSalt = 0,
+            this.newPassword = ""
+            this.changing = false
+        },
+
+        /**
+         * Methode qui permet de valider un changement de mot de passe 
+         * donc la nouvelle valeur remplace la valeur courante
+         */
+        validate(){
+
+            this.$root.password = this.newPassword;
+            this.$root.salt = this.newSalt
+            this.$root.date = Date.now()
+
+            let that = this
+            that.$root.db.register.get(that.$root._id).then(function(doc) {
+                return that.$root.db.register.put({
+                    _id: that.$root._id,
+                    _rev: doc._rev,
+                    date : that.$root.date,
+                    salt : that.$root.salt,
                 });
+            }).then(()=> {
+            // handle response
+                that.newSalt = 0,
+                that.newPassword = ""
+                that.changing = false
+                console.log("Mot de passe changé avec succès");
+                that.$root.hasToBeChange = false
+
+            }).catch(function (err) {
+                console.log(err);
             });
+
+            
+
+        },
+
+        changePassword(){
+            this.changing=true;
+            this.newSalt = Math.ceil(Math.random()* 10^4)
+            this.newPassword = this.$root.mix(this.$root.passwordHash, this.$root.host, this.newSalt, this.$root.mapTable);
+        },
+
+        copy(text, cas){
+            var that = this
+            navigator.clipboard.writeText(text)
+                .then(()=>{
+                    console.log("Message Copié");
+                    if(cas === "new"){
+                        that.textNewPassword="Copié"
+                        setInterval(()=>that.textNewPassword="Copie", 2000)
+                    }else{
+                        that.textPassword="Copié"
+                        setInterval(()=>that.textPassword="Copie", 2000)
+                    }
+                }).catch(err=>{
+                    if(err) console.log(err);
+                })
+
         },
         /**
          * Methode qui séxécute après la copie termine
@@ -123,41 +202,28 @@ export default {
 
     mounted(){
         console.log("Password component Mounted !!!");
-        var that = this;
-
     
         
-        this.$root.db.passwords.find({
+        /*this.$root.db.passwords.find({
             selector : {}
         }).then(res=>{
             that.items= res.docs
         }, err=>{
             if(err) console.log(err);
-        })
+        })*/
     },
     data(){
         return {
             showAlert : false,
             variant : "", 
             message : "",
+            changing : false,
+            newPassword : "",
+            newSalt : "",
+            textPassword : "Copie",
+            textNewPassword : "Copie"
+           
             
-            items: [
-                /*{
-                    host : "juzafgjaegfvb",
-                    password : "Jrgre shkrerzegolhdzjlvbhjzdlb",
-                    type : "password"
-                },
-                {
-                    host : "juzafgjaefvevbfegfvb",
-                    password : "Je shkolhdzjlvbhjzdlb",
-                    type : "password"
-                },
-                {
-                    host : "juzafgjaebfebefgfvb",
-                    password : "Jfreseb shkolhdzjlvbhjzdlb",
-                    type : "password"
-                },*/
-            ],
         }
     }
 

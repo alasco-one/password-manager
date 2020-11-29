@@ -2,9 +2,11 @@
  <div class="container">
     <b-row class="mb-2 mt-2">
           <b-col>
-              <div class="d-inline-block shadow-lg m-auto" >
-                  <b-avatar square rounded-lg class="rounded-lg" size="50px"></b-avatar>
-              </div>
+            <div class="d-flex justify-content-center">
+              <b-avatar  icon="shield-lock-fill"  rounded="lg" size="50px"> 
+              </b-avatar>
+
+            </div>
           </b-col>
     </b-row>
     <auth v-if="!authenticated" ></auth>
