@@ -1,4 +1,5 @@
 # password-manager
+Une extension goohle-chrome basée sur **Vue.js** permettant de gerer les mots de passe en fonction des noms de domaines.
 
 ## Project setup
 ```
