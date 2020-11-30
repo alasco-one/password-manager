@@ -237,7 +237,7 @@ export default {
                         let promise = false
                         if (res.docs.length) {
                             
-                            that.$root._id = res.docs[0]._id
+                            that.$root.id = res.docs[0]._id
                             that.$root.salt = res.docs[0].salt
                             that.$root.date = new Date(res.docs[0].date)
                             let diff = (Date.now() - that.$root.date)
@@ -254,9 +254,10 @@ export default {
                         }else{
                             
                             that.$root.salt = Math.ceil(Math.random() * 10^4)
-                            that.$root._id = that.$root.host+Math.ceil(Math.random() * 10000)
+                            that.$root.id = that.$root.host+Math.ceil(Math.random() * 10000)
+                            
                             promise =  that.$root.db.register.put({
-                                _id : that.$root._id ,
+                                _id : that.$root.id ,
                                 host : that.$root.host, 
                                 salt : that.$root.salt,  
                                 date : Date.now()

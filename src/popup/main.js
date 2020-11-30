@@ -57,7 +57,7 @@ new Vue({
   render: h => h(App),
   data(){
     return {
-      _id : "",
+      id : "",
       passwordHash : "",
       db : db,
       md5 : md5,

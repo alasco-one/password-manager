@@ -51,7 +51,7 @@
 
                                         <b-input-group-append>
                                             <b-button v-b-tooltip.hover  :title="textNewPassword" @click="copy(newPassword, 'new')" 
-                                                variant="outline-light"><b-icon class="text-primary" icon="files"></b-icon></b-button>
+                                                variant="outline-dark"><b-icon class="text-primary" icon="files"></b-icon></b-button>
                                         </b-input-group-append>
                                     </b-input-group>
                                 </b-form-group>
@@ -67,7 +67,7 @@
 
                         <b-row v-if="changing" v-show="changing" class="mt-2 mb-4" >
                             <b-col>
-                                <b-button @click="cancel" block variant="outline-warning">Annuler</b-button>
+                                <b-button @click="cancel" block variant="outline-primary">Annuler</b-button>
                             </b-col>
                             <b-col>
                                 <b-button @click="validate" block variant="outline-success">Valider</b-button>
@@ -136,9 +136,9 @@ export default {
             this.$root.date = Date.now()
 
             let that = this
-            that.$root.db.register.get(that.$root._id).then(function(doc) {
+            that.$root.db.register.get(that.$root.id).then(function(doc) {
                 return that.$root.db.register.put({
-                    _id: that.$root._id,
+                    _id: that.$root.id,
                     _rev: doc._rev,
                     date : that.$root.date,
                     salt : that.$root.salt,
