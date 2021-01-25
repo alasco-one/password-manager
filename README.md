@@ -19,6 +19,7 @@ npm run build
 
 ### Démonstration
 Voici la page de connexion de l'extension google chrome : 
+
 ![Image de la page de connexion](/images/connexion.png)
 
 Une fois qu’on s’y connecte, la page password est affiché et ainsi on peut gérer le mot de passe en lien avec le nom de domaine.
